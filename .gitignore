@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# Build output and Swift Package Manager caches
+build/
+DerivedData/
+.build/
+.swiftpm/
+*.ipa
+*.dSYM/
+*.dSYM.zip
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
