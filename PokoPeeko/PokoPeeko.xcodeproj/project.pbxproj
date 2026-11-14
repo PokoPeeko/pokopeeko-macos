@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		806973E9304F85A700EFCD16 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 806973E8304F85A700EFCD16 /* FirebaseAuth */; };
+		AA0000000000000000000001 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000002 /* SocketIO */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA0000000000000000000001 /* SocketIO in Frameworks */,
 				806973E9304F85A700EFCD16 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -70,6 +72,7 @@
 			);
 			name = PokoPeeko;
 			packageProductDependencies = (
+				AA0000000000000000000002 /* SocketIO */,
 				806973E8304F85A700EFCD16 /* FirebaseAuth */,
 			);
 			productName = PokoPeeko;
@@ -102,6 +105,7 @@
 			mainGroup = 80121137302EACE5004FA946;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				AA0000000000000000000003 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */,
 				806973E7304F85A700EFCD16 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -286,6 +290,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configuration/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -331,6 +336,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Configuration/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -381,6 +387,14 @@
 				minimumVersion = 12.18.0;
 			};
 		};
+		AA0000000000000000000003 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/socketio/socket.io-client-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 16.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -388,6 +402,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 806973E7304F85A700EFCD16 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		AA0000000000000000000002 /* SocketIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000003 /* XCRemoteSwiftPackageReference "socket.io-client-swift" */;
+			productName = SocketIO;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

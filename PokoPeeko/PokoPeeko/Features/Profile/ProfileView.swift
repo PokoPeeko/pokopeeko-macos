@@ -1,36 +1,25 @@
-//
-
 import SwiftUI
-import FirebaseAuth
 
 struct ProfileView: View {
   @Environment(AppState.self) private var appState
   @State private var viewModel = ProfileViewModel()
+
   var body: some View {
-
-#if DEBUG
-    Button("인증 초기화") {
-      SessionManager.delete()
-      try? Auth.auth().signOut()
-      appState.isLoggedIn = false
-    }
-#endif
-
-    Button {
-      Task {
-        let success = await viewModel.logout()
-
-        if success {
-          appState.isLoggedIn = false
+    VStack(alignment: .leading, spacing: 12) {
+      Button("로그아웃") {
+        Task {
+          if await viewModel.logout() { appState.clearAuthentication(notice: viewModel.errorMessage) }
         }
       }
-    } label: {
-      Text("로그아웃")
+      .disabled(viewModel.isLoading)
+      if viewModel.isLoading { ProgressView().controlSize(.small) }
+      if let error = viewModel.errorMessage {
+        Text(error).font(.callout).foregroundStyle(.red)
+      }
     }
-    .disabled(viewModel.isLoading)
   }
 }
 
 #Preview {
-  ProfileView()
+  ProfileView().environment(AppState())
 }

@@ -1,21 +1,19 @@
-//
-
 import SwiftUI
+import AppKit
 import AuthenticationServices
+import UniformTypeIdentifiers
 
 struct SignInView: View {
+  @Environment(\.colorScheme) private var colorScheme
   @Environment(AppState.self) private var appState
   @State private var viewModel = SignInViewModel()
+  @State private var isChoosingImage = false
 
   var body: some View {
     VStack(spacing: 24) {
-
-      Text("PeekoPoko")
-        .font(.largeTitle)
-        .fontWeight(.bold)
-
+      Text("PokoPeeko").font(.largeTitle.bold())
       Text("친구들과 지금 무엇을 하고 있는지 공유해보세요.")
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.secondary).multilineTextAlignment(.center)
 
       if viewModel.needsProfileSetup {
         profileSetupView
@@ -24,111 +22,119 @@ struct SignInView: View {
       }
 
       if viewModel.isLoading {
-        ProgressView()
+        ProgressView(viewModel.needsProfileSetup ? "프로필을 저장하고 있어요" : "로그인하고 있어요")
+          .controlSize(.small)
+      }
+      if let error = viewModel.errorMessage ?? appState.authenticationNotice {
+        Text(error).font(.callout).foregroundStyle(.red)
+          .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+          .accessibilityLabel("오류: \(error)")
       }
 
-      if let errorMessage = viewModel.errorMessage {
-        Text(errorMessage)
-          .foregroundStyle(.red)
+    }
+    .padding(32)
+    .frame(width: 440)
+    .frame(minHeight: viewModel.needsProfileSetup ? 520 : 300)
+    .background {
+      RoundedRectangle(cornerRadius: 20)
+        .fill(Color(nsColor: .windowBackgroundColor))
+        .overlay {
+          RoundedRectangle(cornerRadius: 20)
+            .fill(LinearGradient(colors: [
+              Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.14),
+              Color.accentColor.opacity(colorScheme == .dark ? 0.07 : 0.05)
+            ], startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        .overlay {
+          RoundedRectangle(cornerRadius: 20).strokeBorder(Color.accentColor.opacity(0.14))
+        }
+    }
+    .shadow(color: Color.accentColor.opacity(0.08), radius: 24, y: 10)
+    .padding(24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background {
+      ZStack {
+        Color(nsColor: .windowBackgroundColor)
+        LinearGradient(colors: [
+          Color.accentColor.opacity(colorScheme == .dark ? 0.22 : 0.18),
+          Color.accentColor.opacity(0.08),
+          Color.accentColor.opacity(0.03)
+        ], startPoint: .topLeading, endPoint: .bottomTrailing)
+      }
+      .ignoresSafeArea()
+    }
+    .onChange(of: viewModel.isLoading) { _, loading in
+      if loading { appState.authenticationNotice = nil }
+    }
+    .onChange(of: viewModel.isAuthenticated) { _, authenticated in
+      if authenticated {
+        appState.completeAuthentication(profile: viewModel.profile, imageData: viewModel.selectedImageData)
       }
     }
-    .padding(40)
-    .frame(width: 420, height: 300)
+    .fileImporter(isPresented: $isChoosingImage, allowedContentTypes: [.image], allowsMultipleSelection: false) { result in
+      switch result {
+      case .success(let urls):
+        if let url = urls.first { viewModel.selectImage(at: url) }
+      case .failure:
+        viewModel.imageSelectionFailed()
+      }
+    }
   }
 
   private var appleSignInButton: some View {
     SignInWithAppleButton(.continue) { request in
-      let nonce = AppleAuthHelper.randomNonceString()
-
-      viewModel.currentNonce = nonce
-      request.nonce = AppleAuthHelper.sha256(nonce)
+      request.nonce = viewModel.beginAppleSignIn()
     } onCompletion: { result in
       switch result {
       case .success(let authorization):
-        guard let credential =
-                authorization.credential as? ASAuthorizationAppleIDCredential
-        else {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+          viewModel.handleAuthorizationError(AuthServiceError.invalidResponse)
           return
         }
-
-        Task {
-          await viewModel.signInWithApple(credential: credential)
-        }
-
+        Task { await viewModel.signInWithApple(credential: credential) }
       case .failure(let error):
-        viewModel.errorMessage = error.localizedDescription
+        viewModel.handleAuthorizationError(error)
       }
     }
-//    .disabled(!viewModel.isValidDisplayName)
     .frame(height: 44)
-
+    .disabled(viewModel.isLoading)
   }
 
   private var profileSetupView: some View {
-    VStack(spacing: 16) {
-      Text("프로필 설정")
-        .font(.headline)
-      Text("친구들한테 보여질 프로필을 설정해보세요.")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-
-      Button {
-
-      } label: {
-        ZStack {
-          Circle()
-            .fill(.quaternary)
-            .frame(width: 88, height: 88)
-
-          Image(systemName: "person.fill")
-            .font(.system(size: 36))
-            .foregroundStyle(.secondary)
-
-          Image(systemName: "camera.fill")
-            .font(.system(size: 12))
-            .padding(6)
-            .background(.background)
-            .clipShape(Circle())
-            .offset(x: 32, y: 32)
-        }
-      }
-      .buttonStyle(.plain)
-
-      VStack(alignment: .leading, spacing: 6) {
-        Text("닉네임")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        TextField(
-          "닉네임을 입력해주세요.",
-          text: $viewModel.displayName
-        )
-        .textFieldStyle(.roundedBorder)
-
-        Button("시작하기") {
-          Task {
-            await viewModel.setupProfile()
+    VStack(spacing: 18) {
+      Text("프로필 설정").font(.headline)
+      Text("친구들에게 보여줄 닉네임을 정해주세요. 사진은 선택이에요.")
+        .font(.callout).foregroundStyle(.secondary)
+      Button { isChoosingImage = true } label: {
+        ProfileAvatarView(imageData: viewModel.selectedImageData, size: 88)
+          .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "camera.fill")
+              .font(.caption).padding(7)
+              .background(.background, in: Circle())
           }
-        }
-        .onChange(of: viewModel.isAuthenticated) { _, isAuthenticated in
-          if isAuthenticated {
-            appState.isLoggedIn = true
-          }
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .frame(maxWidth: .infinity)
-        .disabled(
-          viewModel.displayName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty
-        )
       }
-      .frame(maxWidth: 280)
+      .buttonStyle(.plain).disabled(viewModel.isLoading)
+      .accessibilityLabel("프로필 이미지 선택")
+      Text(viewModel.selectedImageData == nil ? "프로필 사진 (선택)" : "사진을 눌러 변경")
+        .font(.caption).foregroundStyle(.secondary)
+      if viewModel.selectedImageData != nil {
+        Button("사진 선택 취소") { viewModel.removeSelectedImage() }
+          .buttonStyle(.link).font(.caption).disabled(viewModel.isLoading)
+      }
+      VStack(alignment: .leading, spacing: 8) {
+        Text("닉네임").font(.caption).foregroundStyle(.secondary)
+        TextField("공백 없이 1~10자", text: $viewModel.displayName)
+          .textFieldStyle(.roundedBorder).disabled(viewModel.isLoading)
+          .accessibilityLabel("닉네임")
+        Button("시작하기") { Task { await viewModel.setupProfile() } }
+          .buttonStyle(.borderedProminent).controlSize(.large)
+          .frame(maxWidth: .infinity)
+          .disabled(!viewModel.canSubmitProfile)
+      }
     }
   }
 }
 
 #Preview {
-  SignInView()
+  SignInView().environment(AppState())
 }

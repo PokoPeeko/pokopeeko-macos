@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MainView: View {
+  @Environment(AppState.self) private var appState
   @Environment(MainViewModel.self) private var model
 
   var body: some View {
@@ -16,60 +17,56 @@ struct MainView: View {
         .padding(20)
 
         List(selection: $model.selection) {
-          Section("내 공간") {
-            ForEach([MainSection.dashboard, .friends, .apps]) { section in
-              Label(section.title, systemImage: section.symbol).tag(section)
-            }
-          }
-          Section("앱 관리") {
-            ForEach([MainSection.profile, .settings, .info, .feedback]) { section in
-              Label(section.title, systemImage: section.symbol).tag(section)
-            }
+          ForEach(MainSection.allCases.filter { $0 != .feedback }) { section in
+            Label(section.title, systemImage: section.symbol).tag(section)
           }
         }
         .listStyle(.sidebar)
 
-        VStack(alignment: .leading, spacing: 6) {
-          Label("UI 미리보기", systemImage: "paintpalette")
-            .font(.callout.weight(.medium))
-          Text("활동 측정과 서버 연결은 준비 중이에요.")
-            .font(.caption).foregroundStyle(.secondary)
+        Button {
+          model.selection = .feedback
+        } label: {
+          Label("피드백", systemImage: "bubble.left")
+            .font(.caption)
+            .foregroundStyle(section == .feedback ? Color.accentColor : .secondary)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
         }
-        .padding(16)
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
       }
       .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
     } detail: {
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
-          SectionHeading(title: section.title, subtitle: section.subtitle)
-          if model.isShowingSamples { SampleNotice() }
+          if section != .dashboard {
+            SectionHeading(title: section.title, subtitle: section.subtitle)
+          }
           switch section {
           case .dashboard: DashboardView()
           case .friends: FriendsView()
           case .apps: AppsView()
+          case .music: MusicIntegrationView()
           case .profile: ProfileOverviewView()
           case .settings: SettingsView()
           case .info: AppInfoView()
           case .feedback: FeedbackView()
           }
         }
-        .padding(32)
+        .padding(section == .dashboard ? 16 : 32)
         .frame(maxWidth: 1_000, alignment: .leading)
         .frame(maxWidth: .infinity)
       }
       .background(.quaternary.opacity(0.25))
       .navigationTitle(section.title)
-      .toolbar {
-        ToolbarItem {
-          Toggle(isOn: $model.isShowingSamples) {
-            Label("샘플 데이터", systemImage: "eye")
-          }
-          .toggleStyle(.button)
-          .help("샘플 데이터와 빈 화면 전환")
-        }
-      }
+
     }
     .frame(minWidth: 860, minHeight: 620)
+    .task {
+      model.appCatalog.start()
+      if appState.isLoggedIn { await model.friendsModel.refresh() }
+    }
   }
 
   private var section: MainSection { model.selection ?? .dashboard }

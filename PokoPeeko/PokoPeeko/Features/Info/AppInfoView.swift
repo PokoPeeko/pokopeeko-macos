@@ -18,9 +18,6 @@ struct AppInfoView: View {
           .lineSpacing(5)
         Divider()
         LabeledContent("버전", value: version)
-        LabeledContent("현재 단계", value: "메인 앱 · 메뉴바 UI")
-        Text("인증 완성, 앱 활동 측정과 실시간 공유는 이후 단계에서 연결합니다.")
-          .font(.callout).foregroundStyle(.secondary)
       }
     }
   }
